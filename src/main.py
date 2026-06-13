@@ -57,6 +57,14 @@ def carregar_algoritmo(nome: str):
         from prog_dinamica import executar_programacao_dinamica
         return lambda inst: executar_programacao_dinamica(inst, versao="otimizada")
 
+    elif nome == "forca_bruta":
+        from forca_bruta import executar_forca_bruta
+        return executar_forca_bruta
+
+    elif nome == "backtracking":
+        from backtracking import executar_backtracking
+        return executar_backtracking
+
     # Algoritmos ainda não implementados — placeholders
     else:
         raise NotImplementedError(

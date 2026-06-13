@@ -14,6 +14,7 @@ Autor: Projeto APA — Problema da Mochila Binária
 
 import sys
 import os
+import warnings
 
 # Adiciona o diretório src ao path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -26,6 +27,8 @@ from prog_dinamica import (
     programacao_dinamica_espaco_otimizado,
     executar_programacao_dinamica,
 )
+from forca_bruta import forca_bruta, executar_forca_bruta
+from backtracking import backtracking, executar_backtracking
 
 
 # ===================================================================
@@ -52,18 +55,11 @@ class InstanciaTeste:
 # Instâncias manuais para validação
 INSTANCIAS_TESTE = [
     InstanciaTeste(
-        nome="Exemplo clássico (4 itens)",
+        nome="Exemplo classico (4 itens)",
         pesos=[2, 3, 4, 5],
         valores=[3, 4, 5, 6],
         capacidade=8,
-        valor_otimo=11,  # Itens {0, 2, 3} → peso=11? Não. Itens {1,3} → 4+6=10, peso=8.
-        # Recalculando: Item 0(p=2,v=3), Item 2(p=4,v=5), Item 1(p=3,v=4) = p=9>8.
-        # Item 0(p=2,v=3) + Item 3(p=5,v=6) = p=7, v=9. Cabe mais Item 1(p=3)? 7+3=10>8. Não.
-        # Item 1(p=3,v=4) + Item 3(p=5,v=6) = p=8, v=10.
-        # Item 0(p=2,v=3) + Item 2(p=4,v=5) = p=6, v=8. + Item 1? 6+3=9>8.
-        # Item 0(p=2,v=3) + Item 1(p=3,v=4) + Item 2(p=4,v=5) = p=9>8.
-        # Item 0+1 = p=5,v=7. + Item 3? 5+5=10>8.
-        # Melhor: {1,3} = 10. Vamos corrigir.
+        valor_otimo=10,  # Itens {1, 3}, peso=8, valor=10
     ),
     InstanciaTeste(
         nome="Mochila vazia (capacidade 0)",
@@ -80,14 +76,14 @@ INSTANCIAS_TESTE = [
         valor_otimo=60,
     ),
     InstanciaTeste(
-        nome="Um único item que cabe",
+        nome="Um unico item que cabe",
         pesos=[5],
         valores=[10],
         capacidade=5,
         valor_otimo=10,
     ),
     InstanciaTeste(
-        nome="Um único item que NÃO cabe",
+        nome="Um unico item que NAO cabe",
         pesos=[10],
         valores=[100],
         capacidade=5,
@@ -101,9 +97,6 @@ INSTANCIAS_TESTE = [
         valor_otimo=15,  # 3 itens de peso 3 = 9
     ),
 ]
-
-# Corrige o valor ótimo da primeira instância
-INSTANCIAS_TESTE[0].valor_otimo = 10  # Itens {1, 3}, peso=8, valor=10
 
 
 # ===================================================================
@@ -299,8 +292,278 @@ class TestProgramacaoDinamica:
 
 
 # ===================================================================
+# Testes da Forca Bruta
+# ===================================================================
+
+class TestForcaBruta:
+    """Testes para o algoritmo de Forca Bruta."""
+
+    @pytest.mark.parametrize("instancia_teste", INSTANCIAS_TESTE,
+                             ids=[i.nome for i in INSTANCIAS_TESTE])
+    def test_valor_otimo(self, instancia_teste):
+        """Forca Bruta deve encontrar o valor otimo correto."""
+        valor, itens, peso = forca_bruta(
+            instancia_teste.pesos,
+            instancia_teste.valores,
+            instancia_teste.capacidade,
+        )
+        assert valor == instancia_teste.valor_otimo, (
+            f"Esperado {instancia_teste.valor_otimo}, obteve {valor}"
+        )
+
+    @pytest.mark.parametrize("instancia_teste", INSTANCIAS_TESTE,
+                             ids=[i.nome for i in INSTANCIAS_TESTE])
+    def test_peso_nao_excede_capacidade(self, instancia_teste):
+        """Peso dos itens selecionados nao deve exceder a capacidade."""
+        _, itens, peso = forca_bruta(
+            instancia_teste.pesos,
+            instancia_teste.valores,
+            instancia_teste.capacidade,
+        )
+        assert peso <= instancia_teste.capacidade
+
+    @pytest.mark.parametrize("instancia_teste", INSTANCIAS_TESTE,
+                             ids=[i.nome for i in INSTANCIAS_TESTE])
+    def test_valor_corresponde_aos_itens(self, instancia_teste):
+        """Valor retornado deve ser a soma dos valores dos itens selecionados."""
+        valor, itens, peso = forca_bruta(
+            instancia_teste.pesos,
+            instancia_teste.valores,
+            instancia_teste.capacidade,
+        )
+        valor_calculado = sum(instancia_teste.valores[i] for i in itens)
+        assert valor == valor_calculado
+
+    def test_contagem_instrucoes_nao_zerada(self):
+        """Contador de instrucoes deve registrar operacoes."""
+        inst = gerar_instancia(n=10, seed=42)
+        contador = Contador()
+        forca_bruta(
+            inst["pesos"], inst["valores"], inst["capacidade"], contador
+        )
+        assert contador.total > 0
+        assert contador.comparacoes > 0
+
+    def test_resultado_padronizado(self):
+        """executar_forca_bruta deve retornar ResultadoAlgoritmo."""
+        inst = gerar_instancia(n=10, seed=42)
+        resultado = executar_forca_bruta(inst)
+        assert isinstance(resultado, ResultadoAlgoritmo)
+        assert resultado.valor > 0
+        assert resultado.tempo_execucao >= 0
+        assert resultado.num_instrucoes > 0
+
+    def test_warning_n_grande(self):
+        """Deve emitir RuntimeWarning quando n excede o limite recomendado."""
+        inst = gerar_instancia(n=5, seed=0)
+        # Simula n grande alterando a lista (nao vamos rodar n=25 no teste)
+        import forca_bruta as fb
+        limite_original = fb.N_MAXIMO_RECOMENDADO
+        try:
+            fb.N_MAXIMO_RECOMENDADO = 3  # Temporariamente reduz o limite
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                forca_bruta(inst["pesos"], inst["valores"], inst["capacidade"])
+                assert len(w) == 1
+                assert issubclass(w[0].category, RuntimeWarning)
+                assert "excede o limite recomendado" in str(w[0].message)
+        finally:
+            fb.N_MAXIMO_RECOMENDADO = limite_original
+
+
+# ===================================================================
+# Testes do Backtracking
+# ===================================================================
+
+class TestBacktracking:
+    """Testes para o algoritmo de Backtracking."""
+
+    @pytest.mark.parametrize("instancia_teste", INSTANCIAS_TESTE,
+                             ids=[i.nome for i in INSTANCIAS_TESTE])
+    def test_valor_otimo(self, instancia_teste):
+        """Backtracking deve encontrar o valor otimo correto."""
+        valor, itens, peso, _ = backtracking(
+            instancia_teste.pesos,
+            instancia_teste.valores,
+            instancia_teste.capacidade,
+        )
+        assert valor == instancia_teste.valor_otimo, (
+            f"Esperado {instancia_teste.valor_otimo}, obteve {valor}"
+        )
+
+    @pytest.mark.parametrize("instancia_teste", INSTANCIAS_TESTE,
+                             ids=[i.nome for i in INSTANCIAS_TESTE])
+    def test_peso_nao_excede_capacidade(self, instancia_teste):
+        """Peso dos itens selecionados nao deve exceder a capacidade."""
+        _, itens, peso, _ = backtracking(
+            instancia_teste.pesos,
+            instancia_teste.valores,
+            instancia_teste.capacidade,
+        )
+        assert peso <= instancia_teste.capacidade
+
+    @pytest.mark.parametrize("instancia_teste", INSTANCIAS_TESTE,
+                             ids=[i.nome for i in INSTANCIAS_TESTE])
+    def test_valor_corresponde_aos_itens(self, instancia_teste):
+        """Valor retornado deve ser a soma dos valores dos itens selecionados."""
+        valor, itens, peso, _ = backtracking(
+            instancia_teste.pesos,
+            instancia_teste.valores,
+            instancia_teste.capacidade,
+        )
+        valor_calculado = sum(instancia_teste.valores[i] for i in itens)
+        assert valor == valor_calculado
+
+    def test_estatisticas_poda_presentes(self):
+        """Backtracking deve retornar estatisticas de poda."""
+        inst = gerar_instancia(n=10, seed=42)
+        _, _, _, estatisticas = backtracking(
+            inst["pesos"], inst["valores"], inst["capacidade"]
+        )
+        assert "nodos_visitados" in estatisticas
+        assert "podas_viabilidade" in estatisticas
+        assert "podas_bound" in estatisticas
+        assert estatisticas["nodos_visitados"] > 0
+
+    def test_poda_reduz_espaco_busca(self):
+        """Backtracking deve visitar menos nos que 2^(n+1)-1 (arvore completa)."""
+        inst = gerar_instancia(n=15, seed=42)
+        _, _, _, estatisticas = backtracking(
+            inst["pesos"], inst["valores"], inst["capacidade"]
+        )
+        arvore_completa = 2 ** (inst["n"] + 1) - 1
+        assert estatisticas["nodos_visitados"] < arvore_completa, (
+            f"Visitou {estatisticas['nodos_visitados']} nos, mas a arvore "
+            f"completa tem {arvore_completa}. As podas nao estao funcionando."
+        )
+
+    def test_contagem_instrucoes_nao_zerada(self):
+        """Contador de instrucoes deve registrar operacoes."""
+        inst = gerar_instancia(n=10, seed=42)
+        contador = Contador()
+        backtracking(
+            inst["pesos"], inst["valores"], inst["capacidade"], contador
+        )
+        assert contador.total > 0
+        assert contador.comparacoes > 0
+
+    def test_resultado_padronizado_com_poda(self):
+        """executar_backtracking deve retornar ResultadoAlgoritmo com estatisticas."""
+        inst = gerar_instancia(n=10, seed=42)
+        resultado = executar_backtracking(inst)
+        assert isinstance(resultado, ResultadoAlgoritmo)
+        assert resultado.valor > 0
+        assert hasattr(resultado, "estatisticas_poda")
+        assert resultado.estatisticas_poda["nodos_visitados"] > 0
+
+    def test_warning_n_grande(self):
+        """Deve emitir RuntimeWarning quando n excede o limite recomendado."""
+        inst = gerar_instancia(n=5, seed=0)
+        import backtracking as bt
+        limite_original = bt.N_MAXIMO_RECOMENDADO
+        try:
+            bt.N_MAXIMO_RECOMENDADO = 3
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                backtracking(inst["pesos"], inst["valores"], inst["capacidade"])
+                assert len(w) == 1
+                assert issubclass(w[0].category, RuntimeWarning)
+                assert "excede o limite recomendado" in str(w[0].message)
+        finally:
+            bt.N_MAXIMO_RECOMENDADO = limite_original
+
+
+# ===================================================================
+# Validacao cruzada: Forca Bruta vs Backtracking vs Prog. Dinamica
+# ===================================================================
+
+# Instancias aleatorias com seeds fixas para validacao cruzada.
+# Essencial para a documentacao: afirmar que os tres algoritmos exatos
+# sao equivalentes em corretude.
+SEEDS_VALIDACAO_CRUZADA = [7, 13, 42, 99, 256]
+TAMANHOS_VALIDACAO = [5, 8, 10, 12, 15]
+
+
+class TestValidacaoCruzada:
+    """
+    Validacao cruzada entre os tres algoritmos exatos.
+
+    Verifica que Forca Bruta, Backtracking e Programacao Dinamica
+    encontram exatamente o mesmo valor otimo para as mesmas instancias.
+    Este teste e fundamental para garantir corretude e sera referenciado
+    na secao de Analise de Resultados da documentacao.
+    """
+
+    @pytest.mark.parametrize(
+        "n, seed",
+        [(n, s) for n, s in zip(TAMANHOS_VALIDACAO, SEEDS_VALIDACAO_CRUZADA)],
+        ids=[f"n={n}_seed={s}" for n, s in zip(TAMANHOS_VALIDACAO, SEEDS_VALIDACAO_CRUZADA)],
+    )
+    def test_tres_algoritmos_mesmo_valor(self, n, seed):
+        """FB, BT e PD devem encontrar o mesmo valor otimo."""
+        inst = gerar_instancia(n=n, seed=seed)
+
+        valor_pd, _, _ = programacao_dinamica(
+            inst["pesos"], inst["valores"], inst["capacidade"]
+        )
+        valor_fb, _, _ = forca_bruta(
+            inst["pesos"], inst["valores"], inst["capacidade"]
+        )
+        valor_bt, _, _, _ = backtracking(
+            inst["pesos"], inst["valores"], inst["capacidade"]
+        )
+
+        assert valor_pd == valor_fb, (
+            f"PD ({valor_pd}) != FB ({valor_fb}) para n={n}, seed={seed}"
+        )
+        assert valor_pd == valor_bt, (
+            f"PD ({valor_pd}) != BT ({valor_bt}) para n={n}, seed={seed}"
+        )
+
+    @pytest.mark.parametrize(
+        "n, seed",
+        [(n, s) for n, s in zip(TAMANHOS_VALIDACAO, SEEDS_VALIDACAO_CRUZADA)],
+        ids=[f"n={n}_seed={s}" for n, s in zip(TAMANHOS_VALIDACAO, SEEDS_VALIDACAO_CRUZADA)],
+    )
+    def test_pesos_solucoes_viaveis(self, n, seed):
+        """Todas as solucoes dos tres algoritmos devem respeitar a capacidade."""
+        inst = gerar_instancia(n=n, seed=seed)
+        W = inst["capacidade"]
+
+        _, _, peso_pd = programacao_dinamica(
+            inst["pesos"], inst["valores"], inst["capacidade"]
+        )
+        _, _, peso_fb = forca_bruta(
+            inst["pesos"], inst["valores"], inst["capacidade"]
+        )
+        _, _, peso_bt, _ = backtracking(
+            inst["pesos"], inst["valores"], inst["capacidade"]
+        )
+
+        assert peso_pd <= W, f"PD: peso {peso_pd} > capacidade {W}"
+        assert peso_fb <= W, f"FB: peso {peso_fb} > capacidade {W}"
+        assert peso_bt <= W, f"BT: peso {peso_bt} > capacidade {W}"
+
+    def test_backtracking_menos_instrucoes_que_forca_bruta(self):
+        """Backtracking deve usar menos instrucoes que Forca Bruta (poda eficaz)."""
+        inst = gerar_instancia(n=15, seed=42)
+
+        contador_fb = Contador()
+        forca_bruta(inst["pesos"], inst["valores"], inst["capacidade"], contador_fb)
+
+        contador_bt = Contador()
+        backtracking(inst["pesos"], inst["valores"], inst["capacidade"], contador_bt)
+
+        assert contador_bt.total < contador_fb.total, (
+            f"Backtracking ({contador_bt.total:,}) nao reduziu instrucoes "
+            f"comparado a Forca Bruta ({contador_fb.total:,})"
+        )
+
+
+# ===================================================================
 # Ponto de entrada para execução direta
 # ===================================================================
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
