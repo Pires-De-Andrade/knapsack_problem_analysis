@@ -65,6 +65,10 @@ def carregar_algoritmo(nome: str):
         from backtracking import executar_backtracking
         return executar_backtracking
 
+    elif nome == "divisao_conquista":
+        from divisao_conquista import executar_divisao_conquista
+        return executar_divisao_conquista
+
     # Algoritmos ainda não implementados — placeholders
     else:
         raise NotImplementedError(

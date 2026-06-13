@@ -29,6 +29,7 @@ from prog_dinamica import (
 )
 from forca_bruta import forca_bruta, executar_forca_bruta
 from backtracking import backtracking, executar_backtracking
+from divisao_conquista import divisao_conquista, executar_divisao_conquista
 
 
 # ===================================================================
@@ -474,11 +475,90 @@ class TestBacktracking:
 
 
 # ===================================================================
-# Validacao cruzada: Forca Bruta vs Backtracking vs Prog. Dinamica
+# Testes de Divisao e Conquista
+# ===================================================================
+
+class TestDivisaoConquista:
+    """Testes para o algoritmo de Divisao e Conquista."""
+
+    @pytest.mark.parametrize("instancia_teste", INSTANCIAS_TESTE,
+                             ids=[i.nome for i in INSTANCIAS_TESTE])
+    def test_valor_otimo(self, instancia_teste):
+        """D&C deve encontrar o valor otimo correto."""
+        valor, itens, peso = divisao_conquista(
+            instancia_teste.pesos,
+            instancia_teste.valores,
+            instancia_teste.capacidade,
+        )
+        assert valor == instancia_teste.valor_otimo, (
+            f"Esperado {instancia_teste.valor_otimo}, obteve {valor}"
+        )
+
+    @pytest.mark.parametrize("instancia_teste", INSTANCIAS_TESTE,
+                             ids=[i.nome for i in INSTANCIAS_TESTE])
+    def test_peso_nao_excede_capacidade(self, instancia_teste):
+        """Peso dos itens selecionados nao deve exceder a capacidade."""
+        _, itens, peso = divisao_conquista(
+            instancia_teste.pesos,
+            instancia_teste.valores,
+            instancia_teste.capacidade,
+        )
+        assert peso <= instancia_teste.capacidade
+
+    @pytest.mark.parametrize("instancia_teste", INSTANCIAS_TESTE,
+                             ids=[i.nome for i in INSTANCIAS_TESTE])
+    def test_valor_corresponde_aos_itens(self, instancia_teste):
+        """Valor retornado deve ser a soma dos valores dos itens selecionados."""
+        valor, itens, peso = divisao_conquista(
+            instancia_teste.pesos,
+            instancia_teste.valores,
+            instancia_teste.capacidade,
+        )
+        valor_calculado = sum(instancia_teste.valores[i] for i in itens)
+        assert valor == valor_calculado
+
+    def test_contagem_instrucoes_nao_zerada(self):
+        """Contador de instrucoes deve registrar operacoes."""
+        inst = gerar_instancia(n=10, seed=42)
+        contador = Contador()
+        divisao_conquista(
+            inst["pesos"], inst["valores"], inst["capacidade"], contador
+        )
+        assert contador.total > 0
+        assert contador.comparacoes > 0
+
+    def test_resultado_padronizado(self):
+        """executar_divisao_conquista deve retornar ResultadoAlgoritmo."""
+        inst = gerar_instancia(n=10, seed=42)
+        resultado = executar_divisao_conquista(inst)
+        assert isinstance(resultado, ResultadoAlgoritmo)
+        assert resultado.valor > 0
+        assert resultado.tempo_execucao >= 0
+        assert resultado.num_instrucoes > 0
+
+    def test_warning_n_grande(self):
+        """Deve emitir RuntimeWarning quando n excede o limite recomendado."""
+        inst = gerar_instancia(n=5, seed=0)
+        import divisao_conquista as dc
+        limite_original = dc.N_MAXIMO_RECOMENDADO
+        try:
+            dc.N_MAXIMO_RECOMENDADO = 3
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                divisao_conquista(inst["pesos"], inst["valores"], inst["capacidade"])
+                assert len(w) == 1
+                assert issubclass(w[0].category, RuntimeWarning)
+                assert "excede o limite" in str(w[0].message)
+        finally:
+            dc.N_MAXIMO_RECOMENDADO = limite_original
+
+
+# ===================================================================
+# Validacao cruzada: FB vs BT vs D&C vs PD (4 algoritmos exatos)
 # ===================================================================
 
 # Instancias aleatorias com seeds fixas para validacao cruzada.
-# Essencial para a documentacao: afirmar que os tres algoritmos exatos
+# Essencial para a documentacao: afirmar que os quatro algoritmos exatos
 # sao equivalentes em corretude.
 SEEDS_VALIDACAO_CRUZADA = [7, 13, 42, 99, 256]
 TAMANHOS_VALIDACAO = [5, 8, 10, 12, 15]
@@ -486,12 +566,12 @@ TAMANHOS_VALIDACAO = [5, 8, 10, 12, 15]
 
 class TestValidacaoCruzada:
     """
-    Validacao cruzada entre os tres algoritmos exatos.
+    Validacao cruzada entre os quatro algoritmos exatos.
 
-    Verifica que Forca Bruta, Backtracking e Programacao Dinamica
-    encontram exatamente o mesmo valor otimo para as mesmas instancias.
-    Este teste e fundamental para garantir corretude e sera referenciado
-    na secao de Analise de Resultados da documentacao.
+    Verifica que Forca Bruta, Backtracking, Divisao e Conquista e
+    Programacao Dinamica encontram exatamente o mesmo valor otimo
+    para as mesmas instancias. Este teste e fundamental para garantir
+    corretude e sera referenciado na secao de Analise de Resultados.
     """
 
     @pytest.mark.parametrize(
@@ -499,8 +579,8 @@ class TestValidacaoCruzada:
         [(n, s) for n, s in zip(TAMANHOS_VALIDACAO, SEEDS_VALIDACAO_CRUZADA)],
         ids=[f"n={n}_seed={s}" for n, s in zip(TAMANHOS_VALIDACAO, SEEDS_VALIDACAO_CRUZADA)],
     )
-    def test_tres_algoritmos_mesmo_valor(self, n, seed):
-        """FB, BT e PD devem encontrar o mesmo valor otimo."""
+    def test_quatro_algoritmos_mesmo_valor(self, n, seed):
+        """FB, BT, D&C e PD devem encontrar o mesmo valor otimo."""
         inst = gerar_instancia(n=n, seed=seed)
 
         valor_pd, _, _ = programacao_dinamica(
@@ -512,12 +592,18 @@ class TestValidacaoCruzada:
         valor_bt, _, _, _ = backtracking(
             inst["pesos"], inst["valores"], inst["capacidade"]
         )
+        valor_dc, _, _ = divisao_conquista(
+            inst["pesos"], inst["valores"], inst["capacidade"]
+        )
 
         assert valor_pd == valor_fb, (
             f"PD ({valor_pd}) != FB ({valor_fb}) para n={n}, seed={seed}"
         )
         assert valor_pd == valor_bt, (
             f"PD ({valor_pd}) != BT ({valor_bt}) para n={n}, seed={seed}"
+        )
+        assert valor_pd == valor_dc, (
+            f"PD ({valor_pd}) != D&C ({valor_dc}) para n={n}, seed={seed}"
         )
 
     @pytest.mark.parametrize(
@@ -526,7 +612,7 @@ class TestValidacaoCruzada:
         ids=[f"n={n}_seed={s}" for n, s in zip(TAMANHOS_VALIDACAO, SEEDS_VALIDACAO_CRUZADA)],
     )
     def test_pesos_solucoes_viaveis(self, n, seed):
-        """Todas as solucoes dos tres algoritmos devem respeitar a capacidade."""
+        """Todas as solucoes dos quatro algoritmos devem respeitar a capacidade."""
         inst = gerar_instancia(n=n, seed=seed)
         W = inst["capacidade"]
 
@@ -539,10 +625,14 @@ class TestValidacaoCruzada:
         _, _, peso_bt, _ = backtracking(
             inst["pesos"], inst["valores"], inst["capacidade"]
         )
+        _, _, peso_dc = divisao_conquista(
+            inst["pesos"], inst["valores"], inst["capacidade"]
+        )
 
         assert peso_pd <= W, f"PD: peso {peso_pd} > capacidade {W}"
         assert peso_fb <= W, f"FB: peso {peso_fb} > capacidade {W}"
         assert peso_bt <= W, f"BT: peso {peso_bt} > capacidade {W}"
+        assert peso_dc <= W, f"D&C: peso {peso_dc} > capacidade {W}"
 
     def test_backtracking_menos_instrucoes_que_forca_bruta(self):
         """Backtracking deve usar menos instrucoes que Forca Bruta (poda eficaz)."""
@@ -557,6 +647,29 @@ class TestValidacaoCruzada:
         assert contador_bt.total < contador_fb.total, (
             f"Backtracking ({contador_bt.total:,}) nao reduziu instrucoes "
             f"comparado a Forca Bruta ({contador_fb.total:,})"
+        )
+
+    def test_dc_mesma_ordem_grandeza_que_forca_bruta(self):
+        """D&C e FB devem ter instrucoes na mesma ordem de grandeza (ambos O(2^n)).
+
+        Como nenhum dos dois aplica podas, o numero de instrucoes deve ser
+        similar. Verificamos que a razao entre eles esta entre 0.1 e 10
+        (mesma ordem de grandeza), sustentando a afirmacao na documentacao
+        de que ambos sao O(2^n) na pratica.
+        """
+        inst = gerar_instancia(n=15, seed=42)
+
+        contador_fb = Contador()
+        forca_bruta(inst["pesos"], inst["valores"], inst["capacidade"], contador_fb)
+
+        contador_dc = Contador()
+        divisao_conquista(inst["pesos"], inst["valores"], inst["capacidade"], contador_dc)
+
+        razao = contador_dc.total / contador_fb.total
+        assert 0.1 <= razao <= 10.0, (
+            f"D&C ({contador_dc.total:,}) e FB ({contador_fb.total:,}) "
+            f"diferem em mais de uma ordem de grandeza (razao={razao:.2f}). "
+            f"Ambos deveriam ser O(2^n)."
         )
 
 
