@@ -30,6 +30,8 @@ from prog_dinamica import (
 from forca_bruta import forca_bruta, executar_forca_bruta
 from backtracking import backtracking, executar_backtracking
 from divisao_conquista import divisao_conquista, executar_divisao_conquista
+from guloso import guloso, executar_guloso
+from heuristica import fptas, executar_heuristica_fptas
 
 
 # ===================================================================
@@ -671,6 +673,117 @@ class TestValidacaoCruzada:
             f"diferem em mais de uma ordem de grandeza (razao={razao:.2f}). "
             f"Ambos deveriam ser O(2^n)."
         )
+
+
+# ===================================================================
+# Testes do Algoritmo Guloso
+# ===================================================================
+
+class TestGuloso:
+    """Testes para a heuristica Gulosa (Razao Valor/Peso)."""
+
+    def test_instancia_falha_guloso(self):
+        """Verifica a instancia documentada onde o guloso falha."""
+        pesos = [6, 5, 5]
+        valores = [8, 5, 5]
+        capacidade = 10
+        
+        valor_guloso, itens_guloso, peso_guloso = guloso(pesos, valores, capacidade)
+        
+        # O guloso pega o item 0 (razao 1.33) e nao consegue pegar mais nada
+        assert valor_guloso == 8
+        assert itens_guloso == [0]
+        assert peso_guloso == 6
+        
+        # O otimo seria pegar itens 1 e 2 (valor 10)
+        valor_pd, _, _ = programacao_dinamica(pesos, valores, capacidade)
+        assert valor_pd == 10
+        assert valor_guloso < valor_pd, "Guloso deveria ser subotimo nesta instancia."
+
+    @pytest.mark.parametrize(
+        "n, seed",
+        [(n, s) for n, s in zip(TAMANHOS_VALIDACAO, SEEDS_VALIDACAO_CRUZADA)],
+        ids=[f"n={n}_seed={s}" for n, s in zip(TAMANHOS_VALIDACAO, SEEDS_VALIDACAO_CRUZADA)],
+    )
+    def test_guloso_nunca_supera_otimo(self, n, seed):
+        """Guloso e admissivel quanto a capacidade, mas valor <= otimo."""
+        inst = gerar_instancia(n=n, seed=seed)
+        W = inst["capacidade"]
+
+        valor_pd, _, _ = programacao_dinamica(
+            inst["pesos"], inst["valores"], inst["capacidade"]
+        )
+        valor_guloso, _, peso_guloso = guloso(
+            inst["pesos"], inst["valores"], inst["capacidade"]
+        )
+
+        assert peso_guloso <= W, f"Guloso excedeu a capacidade: {peso_guloso} > {W}"
+        assert valor_guloso <= valor_pd, (
+            f"Guloso ({valor_guloso}) superou o otimo da PD ({valor_pd})? Impossivel!"
+        )
+
+
+# ===================================================================
+# Testes do FPTAS
+# ===================================================================
+
+class TestHeuristica:
+    """Testes para o FPTAS por escalonamento de valores."""
+
+    @pytest.mark.parametrize(
+        "n, seed",
+        [(10, 42), (12, 99), (15, 256)]
+    )
+    @pytest.mark.parametrize("epsilon", [0.01, 0.1, 0.3, 0.5])
+    def test_garantia_teorica_fptas(self, n, seed, epsilon):
+        """FPTAS deve garantir valor >= (1 - epsilon) * otimo."""
+        inst = gerar_instancia(n=n, seed=seed)
+        W = inst["capacidade"]
+
+        valor_pd, _, _ = programacao_dinamica(
+            inst["pesos"], inst["valores"], inst["capacidade"]
+        )
+        
+        valor_fptas, _, peso_fptas, eps_usado, K = fptas(
+            inst["pesos"], inst["valores"], inst["capacidade"], epsilon=epsilon
+        )
+
+        # 1. Deve respeitar a capacidade
+        assert peso_fptas <= W
+        
+        # 2. Garantia teorica de aproximacao
+        import math
+        garantia = math.ceil(valor_pd * (1 - epsilon))
+        assert valor_fptas >= garantia, (
+            f"Falhou garantia: otimo={valor_pd}, epsilon={epsilon}, "
+            f"garantido={garantia}, obteve={valor_fptas}"
+        )
+        
+        # 3. Nunca superar o otimo (sao itens reais)
+        assert valor_fptas <= valor_pd
+
+    def test_trade_off_epsilon(self):
+        """Verifica se epsilon menor resulta em solucao igual ou melhor (porem mais lenta)."""
+        inst = gerar_instancia(n=20, seed=12345)
+        
+        contador_eps_alto = Contador()
+        val_eps_alto, _, _, _, _ = fptas(
+            inst["pesos"], inst["valores"], inst["capacidade"], 
+            epsilon=0.5, contador=contador_eps_alto
+        )
+        
+        contador_eps_baixo = Contador()
+        val_eps_baixo, _, _, _, _ = fptas(
+            inst["pesos"], inst["valores"], inst["capacidade"], 
+            epsilon=0.01, contador=contador_eps_baixo
+        )
+        
+        # Valor com epsilon pequeno deve ser no minimo o mesmo ou melhor
+        assert val_eps_baixo >= val_eps_alto
+        
+        # O FPTAS com epsilon pequeno (0.01) exige uma tabela maior, 
+        # logo devera realizar mais instrucoes que o epsilon grande (0.5)
+        assert contador_eps_baixo.total > contador_eps_alto.total
 
 
 # ===================================================================

@@ -36,12 +36,13 @@ ALGORITMOS_DISPONIVEIS = {
 }
 
 
-def carregar_algoritmo(nome: str):
+def carregar_algoritmo(nome: str, args=None):
     """
     Importa e retorna a função de execução do algoritmo especificado.
 
     Args:
         nome: Nome do algoritmo (chave em ALGORITMOS_DISPONIVEIS).
+        args: Argumentos da CLI (para passar epsilon, por exemplo).
 
     Returns:
         Callable: Função de execução do algoritmo.
@@ -68,6 +69,15 @@ def carregar_algoritmo(nome: str):
     elif nome == "divisao_conquista":
         from divisao_conquista import executar_divisao_conquista
         return executar_divisao_conquista
+
+    elif nome == "guloso":
+        from guloso import executar_guloso
+        return executar_guloso
+
+    elif nome == "heuristica":
+        from heuristica import executar_heuristica_fptas
+        eps = args.epsilon if args and hasattr(args, 'epsilon') else 0.1
+        return lambda inst: executar_heuristica_fptas(inst, epsilon=eps)
 
     # Algoritmos ainda não implementados — placeholders
     else:
@@ -133,6 +143,12 @@ Exemplos:
         action="store_true",
         help="Exibe detalhes da instância antes da execução.",
     )
+    parser.add_argument(
+        "--epsilon",
+        type=float,
+        default=0.1,
+        help="Parâmetro de aproximação para a heurística FPTAS (padrão: 0.1).",
+    )
 
     args = parser.parse_args()
 
@@ -169,7 +185,7 @@ Exemplos:
 
     # Carregar e executar o algoritmo
     try:
-        funcao_exec = carregar_algoritmo(args.algoritmo)
+        funcao_exec = carregar_algoritmo(args.algoritmo, args)
     except NotImplementedError as e:
         print(f"\n✗ {e}")
         sys.exit(1)
