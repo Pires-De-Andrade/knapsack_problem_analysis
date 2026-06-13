@@ -1,0 +1,49 @@
+# Ambientes Virtuais
+venv/
+.venv/
+env/
+.env/
+
+# Cache e Arquivos Compilados do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testes e Cobertura
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Arquivos Temporários do Microsoft Word / Office
+~$*.docx
+~$*.doc
+*.tmp
+
+# Ferramentas e IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Nota sobre Arquivos de Resultados:
+# As pastas `resultados/csv/` e `resultados/graficos/`, assim como o 
+# `Documentacao_Mochila_Binaria.docx` não foram ignorados pois, por se 
+# tratar de um trabalho acadêmico, é interessante que o seu avaliador 
+# tenha acesso aos resultados brutos finais direto no repositório.

@@ -37,12 +37,12 @@ mochila_binaria/
 
 | # | Estratégia           | Complexidade Tempo | Complexidade Espaço | Status |
 |---|----------------------|--------------------|---------------------|--------|
-| 1 | Força Bruta          | O(2ⁿ)             | O(n)                 | 🔲     |
-| 2 | Backtracking         | O(2ⁿ) pior caso   | O(n)                 | 🔲     |
-| 3 | Divisão e Conquista  | O(2ⁿ)             | O(n)                 | 🔲     |
+| 1 | Força Bruta          | O(2ⁿ)             | O(n)                 | ✅     |
+| 2 | Backtracking         | O(2ⁿ) pior caso   | O(n)                 | ✅     |
+| 3 | Divisão e Conquista  | O(2ⁿ)             | O(n)                 | ✅     |
 | 4 | Programação Dinâmica | O(n × W)           | O(n × W) / O(W)     | ✅     |
-| 5 | Guloso               | O(n log n)         | O(n)                | 🔲     |
-| 6 | Heurística FPTAS     | O(n² / ε)         | O(n / ε)             | 🔲     |
+| 5 | Guloso               | O(n log n)         | O(n)                | ✅     |
+| 6 | Heurística FPTAS     | O(n² / ε)         | O(n / ε)             | ✅     |
 
 ## Instalação
 
@@ -56,28 +56,44 @@ source venv/bin/activate      # Linux/Mac
 pip install -r requirements.txt
 ```
 
-## Uso Rápido
+## 1. Executar os Testes Automatizados
+
+A suíte de testes (141 testes) garante que as 6 implementações estão corretas e valida as garantias teóricas (como o gap máximo do FPTAS e a subotimalidade do Guloso).
 
 ```bash
-# Executar Programação Dinâmica com instância gerada automaticamente
-cd src
-python main.py --algoritmo prog_dinamica --gerar 15 --seed 42 --exibir-instancia
-
-# Executar com instância salva em JSON
-python main.py --algoritmo prog_dinamica --arquivo ../instancias/exemplo.json
-
-# Listar algoritmos disponíveis
-python main.py --listar-algoritmos
+# Executar todos os testes unitários formatados de forma limpa
+python -m pytest testes/test_algoritmos.py -v --tb=short
 ```
 
-## Testes
+## 2. Executar a Análise de Resultados (CSV e Gráficos)
+
+O script `analise.py` roda os três experimentos detalhados na sua documentação acadêmica (Escalabilidade, Qualidade/Gap e Eficácia da Poda) e salva os dados brutos e os gráficos.
 
 ```bash
-# Executar todos os testes unitários
-python -m pytest testes/ -v
+# Executar a rotina completa
+python src/analise.py
 
-# Executar com cobertura (requer pytest-cov)
-python -m pytest testes/ -v --cov=src
+# Pular os experimentos (demorados) e apenas regerar os gráficos a partir dos CSVs
+python src/analise.py --skip-exp
+```
+Os CSVs são salvos em `resultados/csv/` e os gráficos em `resultados/graficos/`.
+
+## 3. Interface de Linha de Comando Rápida (CLI)
+
+O arquivo `main.py` permite que você teste instâncias específicas e algoritmos avulsos rapidamente pelo terminal.
+
+```bash
+# Listar algoritmos disponíveis
+python src/main.py --listar-algoritmos
+
+# Exemplo: Rodar Programação Dinâmica
+python src/main.py -a prog_dinamica -g 15 -s 42
+
+# Exemplo: Rodar Guloso, exibindo a instância detalhada gerada
+python src/main.py -a guloso -g 15 -s 42 --exibir-instancia
+
+# Exemplo: Rodar Heurística FPTAS passando o parâmetro de erro epsilon
+python src/main.py -a heuristica -g 15 -s 42 --epsilon 0.5
 ```
 
 ## Instrumentação

@@ -18,7 +18,6 @@ Experimentos:
     3. Eficácia de Poda (Backtracking):
        - Registra nodos visitados vs espaço total 2^n.
 
-Autor: Projeto APA
 """
 
 import os
@@ -86,7 +85,7 @@ def gerar_instancia_adversarial(n: int) -> dict:
     }
 
 
-def rodar_experimento_escalabilidade(ns_exponenciais, ns_escalaveis, repeticoes=3):
+def rodar_experimento_escalabilidade(ns_exponenciais, ns_escalaveis, repeticoes=1):
     print("\n--- INICIANDO EXPERIMENTO 1: ESCALABILIDADE ---")
     caminho_csv = "resultados/csv/escalabilidade.csv"
     
@@ -363,9 +362,9 @@ def main():
     args = parser.parse_args()
 
     if not args.skip_exp:
-        # Configurações de N para os testes
-        ns_exponenciais = [4, 6, 8, 10, 12, 14, 16, 18]
-        ns_escalaveis = [4, 6, 8, 10, 12, 14, 16, 18, 50, 100, 200, 500, 1000]
+        # Configurações de N para os testes reduzidas para agilizar a validação
+        ns_exponenciais = [4, 6, 8, 10, 12, 14, 16]
+        ns_escalaveis = [10, 20, 50, 100]
         
         ns_adversariais = [5, 10, 20, 50, 100]
         epsilons_fptas = [0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.8]
