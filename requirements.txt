@@ -1,0 +1,15 @@
+# Dependências do projeto — Problema da Mochila Binária
+# =====================================================
+# Para instalar: pip install -r requirements.txt
+
+# Testes unitários
+pytest>=7.0
+
+# Geração de gráficos comparativos (para analise.py)
+matplotlib>=3.5
+
+# Manipulação de dados e exportação CSV (para analise.py)
+pandas>=1.4
+
+# Formatação de tabelas no terminal (opcional)
+tabulate>=0.9
