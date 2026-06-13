@@ -15,12 +15,12 @@ mochila_binaria/
 ├── src/                           # Código-fonte dos algoritmos
 │   ├── instrumentacao.py          # Contador de instruções e medição de tempo
 │   ├── gerador_instancias.py      # Gerador de instâncias aleatórias (com seed)
-│   ├── prog_dinamica.py           # ✅ Programação Dinâmica (tabela + espaço otimizado)
-│   ├── forca_bruta.py             # 🔲 Força Bruta (todos os 2^n subconjuntos)
-│   ├── backtracking.py            # 🔲 Backtracking (com podas)
-│   ├── divisao_conquista.py       # 🔲 Divisão e Conquista (recursão sem memoização)
-│   ├── guloso.py                  # 🔲 Guloso (razão valor/peso)
-│   ├── heuristica.py              # 🔲 Heurística FPTAS (escalonamento de valores)
+│   ├── prog_dinamica.py           # Programação Dinâmica (tabela + espaço otimizado)
+│   ├── forca_bruta.py             # Força Bruta (todos os 2^n subconjuntos)
+│   ├── backtracking.py            # Backtracking (com podas)
+│   ├── divisao_conquista.py       # Divisão e Conquista (recursão sem memoização)
+│   ├── guloso.py                  # Guloso (razão valor/peso)
+│   ├── heuristica.py              # Heurística FPTAS (escalonamento de valores)
 │   └── main.py                    # CLI para execução individual
 ├── instancias/                    # Instâncias de teste (JSON)
 ├── resultados/
@@ -37,12 +37,12 @@ mochila_binaria/
 
 | # | Estratégia           | Complexidade Tempo | Complexidade Espaço | Status |
 |---|----------------------|--------------------|---------------------|--------|
-| 1 | Força Bruta          | O(2ⁿ)             | O(n)                | 🔲     |
-| 2 | Backtracking         | O(2ⁿ) pior caso   | O(n)                | 🔲     |
-| 3 | Divisão e Conquista  | O(2ⁿ)             | O(n)                | 🔲     |
-| 4 | Programação Dinâmica | O(n × W)           | O(n × W) / O(W)    | ✅     |
+| 1 | Força Bruta          | O(2ⁿ)             | O(n)                 | 🔲     |
+| 2 | Backtracking         | O(2ⁿ) pior caso   | O(n)                 | 🔲     |
+| 3 | Divisão e Conquista  | O(2ⁿ)             | O(n)                 | 🔲     |
+| 4 | Programação Dinâmica | O(n × W)           | O(n × W) / O(W)     | ✅     |
 | 5 | Guloso               | O(n log n)         | O(n)                | 🔲     |
-| 6 | Heurística FPTAS     | O(n² / ε)         | O(n / ε)            | 🔲     |
+| 6 | Heurística FPTAS     | O(n² / ε)         | O(n / ε)             | 🔲     |
 
 ## Instalação
 
@@ -107,7 +107,5 @@ O módulo `instrumentacao.py` fornece:
 ```
 
 ---
-
-**Autor**: Projeto APA  
 **Linguagem**: Python 3.10+  
 **Licença**: Uso acadêmico
